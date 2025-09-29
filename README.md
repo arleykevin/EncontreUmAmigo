@@ -1,7 +1,5 @@
 # 🐾 EncontreUmAmigo
 
-![Banner do Projeto - Ilustração de animais (cães e gatos) com pessoas felizes interagindo, em um ambiente amigável e moderno.](https://via.placeholder.com/1200x400?text=Banner+do+Projeto+-+EncontreUmAmigo)
-
 ## 📝 Descrição do Projeto
 
 O "EncontreUmAmigo" é uma plataforma multiplataforma desenvolvida para otimizar a gestão de abrigos de animais em Fortaleza e facilitar o processo de adoção responsável. Com foco no Objetivo de Desenvolvimento Sustentável (ODS) 11 da ONU – Cidades e Comunidades Sustentáveis, nosso sistema visa conectar animais necessitados a lares amorosos, ao mesmo tempo em que oferece ferramentas essenciais para a administração eficiente dos abrigos.
