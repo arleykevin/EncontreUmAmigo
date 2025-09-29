@@ -83,7 +83,6 @@ O desenvolvimento da Etapa 2 (N708) será dividido em Sprints quinzenais, totali
 
 | Nome Completo | Papel no Projeto | Contato (GitHub/Email) |
 | :------------ | :--------------- | :--------------------- |
-| [Seu Nome]    | [Seu Papel]      | [Link GitHub ou Email] |
 | [Antonia Taynara Maciel Paulo] | [Elaboração de cronograma]   | [taymaciel24@gmail.com] |
 | [Arley Kevin Teixeira Rabelo] | [Definição de arquitetuta do sistema]   | [Link GitHub ou Email] |
 | [Francisca Josiana dos Santos Oliveira] | [Criação de protótipos de interface web e mobile]   | [noinicio@hotmail.com] |
