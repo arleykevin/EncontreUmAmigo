@@ -26,7 +26,7 @@ O diagrama abaixo ilustra a comunicação e o fluxo de dados entre as três cama
 
 ```mermaid
 graph TD
-    A[Frontend: Aplicação Web/Mobile] -->|Requisições (HTTP/HTTPS)| B(Backend: Lógica de Negócio e APIs)
+    A [Frontend: Aplicação Web/Mobile] --> |Requisições (HTTP/HTTPS)| B(Backend: Lógica de Negócio e APIs)
     B -->|Consultas/Transações| C[Banco de Dados: Persistência de Dados]
     C -->|Resultados| B
     B -->|Respostas (JSON)| A
