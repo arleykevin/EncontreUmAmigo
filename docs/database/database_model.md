@@ -104,17 +104,8 @@ erDiagram
     ANIMAL }o--|| ADOCAO : "recebe candidatura de"
 ```
 
----
-```
-
------
-
 **Observações Importantes:**
 
   * **Tipos de Dados:** Adaptei os tipos de dados para serem mais genéricos (`ObjectId` ou `UUID` para IDs, `String`, `Number`, `Date`, `Boolean`, `Array de Strings`) já que você está usando MongoDB, que é flexível. Se fosse SQL (PostgreSQL, MySQL), usaríamos `INT`, `VARCHAR`, `DATE`, `BOOLEAN`, etc.
   * **Relacionamentos no ERD:** Ajustei a notação Mermaid para indicar as chaves estrangeiras (`FK`) e os relacionamentos entre as entidades.
   * **`abrigoID` em `ANIMAL`:** Incluí um `abrigoID` na entidade `Animal` como uma Chave Estrangeira. Isso implica que, em um sistema real, você teria uma entidade `Abrigo` (com informações como nome, endereço do abrigo, etc.), mas para este nível de detalhe, podemos apenas indicar a conexão.
-
-Com este arquivo, a parte do banco de dados está super documentada e pronta para o seu repositório\!
-
-Falta agora apenas um arquivo para completar a estrutura principal do `docs/`: o **`api_specification.md`**. Queremos seguir para ele?
