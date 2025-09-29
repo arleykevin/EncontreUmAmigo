@@ -30,3 +30,4 @@ graph TD
     B -->|Consultas/Transações| C[Banco de Dados: Persistência de Dados]
     C -->|Resultados| B
     B -->|Respostas (JSON)| A
+```
