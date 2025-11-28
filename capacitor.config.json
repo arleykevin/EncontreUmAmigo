@@ -1,0 +1,8 @@
+{
+  "appId": "com.encontreumamigo.app",
+  "appName": "EncontreUmAmigo",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
