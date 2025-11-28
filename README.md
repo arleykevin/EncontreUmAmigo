@@ -4,8 +4,8 @@
 
 O "EncontreUmAmigo" é uma plataforma multiplataforma desenvolvida para otimizar a gestão de abrigos de animais em Fortaleza e facilitar o processo de adoção responsável. Com foco no Objetivo de Desenvolvimento Sustentável (ODS) 11 da ONU – Cidades e Comunidades Sustentáveis, nosso sistema visa conectar animais necessitados a lares amorosos, ao mesmo tempo em que oferece ferramentas essenciais para a administração eficiente dos abrigos.
 
-Link para acesso: encontre-um-amigo.vercel.app
-Faça o downlaod do App Android: 
+# Link para acesso: https://encontre-um-amigo.vercel.app/ 
+# Faça o downlaod do App Android: 
 
 
 ##  problematização Abordado e Justificativa
@@ -95,4 +95,5 @@ O desenvolvimento da Etapa 2 (N708) será dividido em Sprints quinzenais, totali
 | ...           | ...              | ...                    |
 
 ---
+
 
