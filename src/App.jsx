@@ -18,6 +18,7 @@ function App() {
     const [adoptions, setAdoptions] = useState([]); 
     const [messages, setMessages] = useState([]); 
     const [volunteers, setVolunteers] = useState([]); 
+    const [users, setUsers] = useState([]); 
     
     const [filteredPets, setFilteredPets] = useState([]);
     const [selectedPet, setSelectedPet] = useState(null);
@@ -39,12 +40,28 @@ function App() {
 
     const [isAdmin, setIsAdmin] = useState(false); 
     const [loginData, setLoginData] = useState({ username: '', password: '' });
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
 
-    // --- FUNÇÃO CENTRAL PARA RECARREGAR DADOS SEM SAIR DA TELA ---
+    useEffect(() => {
+        const autenticarInicial = async () => {
+            const currentUser = Parse.User.current();
+            if (currentUser) {
+                const username = currentUser.get("username");
+                if (username && !username.startsWith("visitante_")) setIsAdmin(true); 
+            } else {
+                const user = new Parse.User();
+                user.set("username", "visitante_" + Math.random().toString(36).substring(7));
+                user.set("password", "senha123");
+                try { await user.signUp(); } catch (e) { console.error("Login auto:", e); }
+            }
+        };
+        autenticarInicial();
+    }, []);
+
     const loadAllData = async () => {
         if (Parse.applicationId && Parse.applicationId !== "SEU_APPLICATION_ID_AQUI") {
             try {
-                // 1. Pets
                 const Pet = Parse.Object.extend("Pet");
                 const qPets = new Parse.Query(Pet);
                 qPets.descending("createdAt");
@@ -58,21 +75,18 @@ function App() {
                         age: p.get("age"), gender: p.get("gender") || "Desconhecido", location: p.get("location"),
                         image: img, description: p.get("description"), owner: p.get("owner") || p.get("ownerName"),
                         contact: p.get("contact"), email: p.get("email"), vaccinated: p.get("vaccinated"), castrated: p.get("castrated"),
-                        isAdopted: p.get("isAdopted") || false,
-                        ownerName: p.get("owner")
+                        isAdopted: p.get("isAdopted") || false, ownerName: p.get("owner")
                     };
                 });
                 mappedPets.sort((a, b) => (a.isAdopted === b.isAdopted) ? 0 : a.isAdopted ? 1 : -1);
                 setPets(mappedPets); setFilteredPets(mappedPets);
 
-                // 2. Doações
                 const Donation = Parse.Object.extend("Donation");
                 const qDon = new Parse.Query(Donation);
                 qDon.descending("createdAt");
                 const rDon = await qDon.find();
                 setDonations(rDon.map(d => ({ id: d.id, name: d.get("name"), contact: d.get("contact"), items: d.get("items"), date: d.createdAt.toLocaleDateString('pt-BR') })));
 
-                // 3. Solicitações
                 const Adoption = Parse.Object.extend("AdoptionRequest");
                 const qAdop = new Parse.Query(Adoption);
                 qAdop.descending("createdAt");
@@ -83,7 +97,6 @@ function App() {
                     date: a.createdAt.toLocaleDateString('pt-BR')
                 })));
 
-                // 4. Mensagens
                 const Contact = Parse.Object.extend("ContactMessage");
                 const qMsg = new Parse.Query(Contact);
                 qMsg.descending("createdAt");
@@ -94,7 +107,6 @@ function App() {
                     date: m.createdAt.toLocaleDateString('pt-BR')
                 })));
 
-                // 5. Voluntários
                 const Volunteer = Parse.Object.extend("Volunteer");
                 const qVol = new Parse.Query(Volunteer);
                 qVol.descending("createdAt");
@@ -105,32 +117,39 @@ function App() {
                     date: v.createdAt.toLocaleDateString('pt-BR')
                 })));
 
+                if (isAdmin) {
+                    const qUser = new Parse.Query(Parse.User);
+                    qUser.descending("createdAt");
+                    const rUsers = await qUser.find();
+                    setUsers(rUsers.map(u => ({
+                        id: u.id,
+                        username: u.get("username"),
+                        email: u.get("email") || "Sem email",
+                        date: u.createdAt.toLocaleDateString('pt-BR')
+                    })));
+                }
+
             } catch (err) { console.error("Erro Back4App:", err); setPets(MOCK_PETS); }
         } else { setPets(MOCK_PETS); }
         setLoadingInitial(false);
     };
 
-    // Inicialização
     useEffect(() => {
         const init = async () => {
-            // Login Fantasma
             const currentUser = Parse.User.current();
             if (currentUser) {
                 const username = currentUser.get("username");
                 if (username && !username.startsWith("visitante_")) setIsAdmin(true); 
-            } else {
-                const user = new Parse.User();
-                user.set("username", "visitante_" + Math.random().toString(36).substring(7));
-                user.set("password", "senha123");
-                try { await user.signUp(); } catch (e) { console.error("Erro ghost:", e); }
             }
-            // Carrega dados
             await loadAllData();
         };
         init();
     }, []);
 
-    // Filtros
+    useEffect(() => {
+        if (isAdmin) loadAllData();
+    }, [isAdmin]);
+
     useEffect(() => {
         let result = pets;
         if (filterType !== 'all') result = result.filter(p => p.type === filterType);
@@ -147,29 +166,6 @@ function App() {
         user.set("username", "visitante_" + Math.random().toString(36).substring(7));
         user.set("password", "senha123");
         try { await user.signUp(); } catch (e) { console.error("Erro ghost user:", e); }
-    };
-
-    // --- AÇÕES COM RECARREGAMENTO SUAVE (SEM RELOAD) ---
-
-    const handleSaveVolunteer = async (e) => {
-        e.preventDefault(); setIsSaving(true);
-        try { await ensureGhostUser(); const V = Parse.Object.extend("Volunteer"); const v = new V();
-            const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); v.setACL(acl);
-            v.set("name", volunteerForm.name); v.set("contact", volunteerForm.contact);
-            v.set("availability", volunteerForm.availability); v.set("interests", volunteerForm.interests);
-            await v.save(); alert("Cadastro realizado!"); setVolunteerForm({ name: '', contact: '', availability: '', interests: '' });
-            await loadAllData(); // Recarrega dados
-        } catch (err) { alert(err.message); } finally { setIsSaving(false); }
-    };
-
-    const handleSaveContact = async (e) => {
-        e.preventDefault(); setIsSaving(true);
-        try { await ensureGhostUser(); const C = Parse.Object.extend("ContactMessage"); const m = new C();
-            const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); m.setACL(acl);
-            m.set("name", contactForm.name); m.set("email", contactForm.email); m.set("subject", contactForm.subject); m.set("message", contactForm.message);
-            await m.save(); alert("Mensagem enviada!"); setContactForm({ name: '', email: '', subject: '', message: '' });
-            await loadAllData();
-        } catch (err) { alert(err.message); } finally { setIsSaving(false); }
     };
 
     const handleRegisterPet = async (formData, editId) => {
@@ -192,86 +188,45 @@ function App() {
             petToSave.set("description", formData.description); petToSave.set("owner", formData.ownerName);
             petToSave.set("contact", formData.contact); petToSave.set("email", formData.email);
             petToSave.set("vaccinated", formData.vaccinated); petToSave.set("castrated", formData.castrated);
-            
-            if (formData.file) {
-                const parseFile = new Parse.File("photo.jpg", formData.file);
-                await parseFile.save();
-                petToSave.set("image", parseFile);
-            }
-            await petToSave.save();
-            alert("Sucesso!"); 
-            await loadAllData(); // Recarrega
-            setView(isAdmin ? 'admin' : 'home'); // Volta para a tela certa
+            if (formData.file) { const parseFile = new Parse.File("photo.jpg", formData.file); await parseFile.save(); petToSave.set("image", parseFile); }
+            await petToSave.save(); alert("Sucesso!"); await loadAllData(); setView(isAdmin ? 'admin' : 'home');
         } catch (e) { alert(e.message); } finally { setIsSaving(false); }
     };
 
-    const handleAdoptionRequest = async (pet, adopterData) => {
+    const handleAdminResetPassword = async (email) => {
+        if (!email || email === "Sem email") { alert("Este usuário não tem email cadastrado."); return; }
+        if (!confirm(`Enviar email de redefinição de senha para ${email}?`)) return;
+        setIsSaving(true);
+        try { await Parse.User.requestPasswordReset(email); alert("Email enviado com sucesso!"); } catch (e) { alert("Erro: " + e.message); } 
+        finally { setIsSaving(false); }
+    };
+
+    const handleDeleteUser = async (userId) => {
+        if (!confirm("TEM CERTEZA? Isso excluirá o usuário do banco de dados.")) return;
         setIsSaving(true);
         try {
-            await ensureGhostUser(); const A = Parse.Object.extend("AdoptionRequest"); const req = new A();
-            const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); req.setACL(acl);
-            req.set("petName", pet.name); req.set("petId", pet.id); req.set("adopterName", adopterData.name); req.set("adopterContact", adopterData.contact); req.set("status", "Analisando");
-            await req.save(); alert("Solicitação enviada!"); setSelectedPet(null); 
-            await loadAllData();
-        } catch (e) { alert(e.message); } finally { setIsSaving(false); }
+            const query = new Parse.Query(Parse.User); const user = await query.get(userId); await user.destroy(); alert("Usuário excluído."); await loadAllData();
+        } catch (e) { alert("Erro ao excluir: " + e.message + "\n\nDica: Verifique se liberou 'Delete' no CLP do Back4App."); } finally { setIsSaving(false); }
     };
 
-    const handleSaveDonation = async (e) => {
-        e.preventDefault(); setIsSaving(true);
-        try { await ensureGhostUser(); const D = Parse.Object.extend("Donation"); const d = new D(); 
-            const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); d.setACL(acl);
-            d.set("name", donationForm.name); d.set("contact", donationForm.contact); d.set("items", donationForm.items);
-            await d.save(); alert("Recebido!"); setDonationForm({name:'', contact:'', items:''});
-            await loadAllData();
-        } catch(e){alert(e.message);} finally { setIsSaving(false); }
-    };
-
-    const handleUpdateStatus = async (id, newStatus) => {
-        // Atualiza visualmente primeiro para ser rápido
-        setAdoptions(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
-        try {
-            const Adoption = Parse.Object.extend("AdoptionRequest"); const q = new Parse.Query(Adoption); const o = await q.get(id);
-            o.set("status", newStatus); await o.save();
-        } catch (e) { alert("Erro ao salvar status"); }
-    };
-
-    const togglePetAdopted = async (petId, currentStatus) => {
-        setIsSaving(true);
-        try {
-            const Pet = Parse.Object.extend("Pet"); const q = new Parse.Query(Pet); const p = await q.get(petId);
-            p.set("isAdopted", !currentStatus); await p.save();
-            await loadAllData(); // Recarrega
-        } catch (e) { alert(e.message); } finally { setIsSaving(false); }
-    };
-
-    const deleteItem = async (className, id, confirmMsg) => {
-        if (!confirm(confirmMsg)) return;
-        setIsSaving(true);
-        try {
-            const Obj = Parse.Object.extend(className); const q = new Parse.Query(Obj); const o = await q.get(id); await o.destroy();
-            await loadAllData(); // Recarrega tudo limpo
-        } catch (e) { alert(e.message); } finally { setIsSaving(false); }
-    };
-
+    const handleSaveVolunteer = async (e) => { e.preventDefault(); setIsSaving(true); try { await ensureGhostUser(); const V = Parse.Object.extend("Volunteer"); const v = new V(); const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); v.setACL(acl); v.set("name", volunteerForm.name); v.set("contact", volunteerForm.contact); v.set("availability", volunteerForm.availability); v.set("interests", volunteerForm.interests); await v.save(); alert("Cadastro realizado!"); setVolunteerForm({ name: '', contact: '', availability: '', interests: '' }); await loadAllData(); } catch (err) { alert(err.message); } finally { setIsSaving(false); } };
+    const handleSaveContact = async (e) => { e.preventDefault(); setIsSaving(true); try { await ensureGhostUser(); const C = Parse.Object.extend("ContactMessage"); const m = new C(); const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); m.setACL(acl); m.set("name", contactForm.name); m.set("email", contactForm.email); m.set("subject", contactForm.subject); m.set("message", contactForm.message); await m.save(); alert("Mensagem enviada!"); setContactForm({ name: '', email: '', subject: '', message: '' }); await loadAllData(); } catch (err) { alert(err.message); } finally { setIsSaving(false); } };
+    const handleAdoptionRequest = async (pet, adopterData) => { setIsSaving(true); try { await ensureGhostUser(); const A = Parse.Object.extend("AdoptionRequest"); const req = new A(); const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); req.setACL(acl); req.set("petName", pet.name); req.set("petId", pet.id); req.set("adopterName", adopterData.name); req.set("adopterContact", adopterData.contact); req.set("status", "Analisando"); await req.save(); alert("Solicitação enviada!"); setSelectedPet(null); await loadAllData(); } catch (e) { alert(e.message); } finally { setIsSaving(false); } };
+    const handleSaveDonation = async (e) => { e.preventDefault(); setIsSaving(true); try { await ensureGhostUser(); const D = Parse.Object.extend("Donation"); const d = new D(); const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); d.setACL(acl); d.set("name", donationForm.name); d.set("contact", donationForm.contact); d.set("items", donationForm.items); await d.save(); alert("Recebido!"); setDonationForm({name:'', contact:'', items:''}); await loadAllData(); } catch(e){alert(e.message);} finally { setIsSaving(false); } };
+    const handleUpdateStatus = async (id, newStatus) => { setAdoptions(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a)); try { const A = Parse.Object.extend("AdoptionRequest"); const q = new Parse.Query(A); const o = await q.get(id); o.set("status", newStatus); await o.save(); } catch (e) { alert("Erro ao salvar status"); } };
+    const togglePetAdopted = async (petId, currentStatus) => { setIsSaving(true); try { const P = Parse.Object.extend("Pet"); const q = new Parse.Query(P); const p = await q.get(petId); p.set("isAdopted", !currentStatus); await p.save(); await loadAllData(); } catch (e) { alert(e.message); } finally { setIsSaving(false); } };
+    
+    const deleteItem = async (className, id, confirmMsg) => { if (!confirm(confirmMsg)) return; setIsSaving(true); try { const Obj = Parse.Object.extend(className); const q = new Parse.Query(Obj); const o = await q.get(id); await o.destroy(); await loadAllData(); } catch (e) { alert(e.message); } finally { setIsSaving(false); } };
     const handleDeletePet = async (id) => { deleteItem("Pet", id, "Excluir Pet?"); };
     const handleDeleteDonation = async (id) => { deleteItem("Donation", id, "Concluir doação?"); };
     const handleDeleteAdoption = async (id) => { deleteItem("AdoptionRequest", id, "Arquivar?"); };
     const handleDeleteMessage = async (id) => { deleteItem("ContactMessage", id, "Excluir mensagem?"); };
     const handleDeleteVolunteer = async (id) => { deleteItem("Volunteer", id, "Excluir voluntário?"); };
 
-    const handleAdminLogin = async (e) => {
-        e.preventDefault(); setIsSaving(true);
-        try { await Parse.User.logIn(loginData.username, loginData.password); setIsAdmin(true); }
-        catch(e){alert(e.message);} finally { setIsSaving(false); }
-    };
-    
-    const handleLogout = async () => { 
-        await Parse.User.logOut(); 
-        setIsAdmin(false); // Apenas sai do modo admin, não recarrega
-        setView('home');
-    }
+    const handleAdminLogin = async (e) => { e.preventDefault(); setIsSaving(true); try { await Parse.User.logIn(loginData.username, loginData.password); setIsAdmin(true); } catch(e){alert(e.message);} finally { setIsSaving(false); } };
+    const handleForgotPassword = async (e) => { e.preventDefault(); if (!resetEmail) { alert("Digite seu email."); return; } setIsSaving(true); try { await Parse.User.requestPasswordReset(resetEmail); alert("✅ Email enviado!"); setShowForgotPassword(false); } catch (error) { alert("Erro: " + error.message); } finally { setIsSaving(false); } };
+    const handleLogout = async () => { await Parse.User.logOut(); setIsAdmin(false); setView('home'); }
 
-    // Helpers
     const openRegister = () => { setEditingPet(null); setView('register'); }
     const openEdit = (pet) => { setEditingPet(pet); setView('register'); }
 
@@ -282,11 +237,12 @@ function App() {
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
             <nav className="bg-white shadow-sm sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
+                    {/* LOGO DEFINITIVA (Via Código) */}
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
                         <div className="w-10 h-10 text-indigo-600 hover:scale-110 transition-transform">
-                            <Icons.Dog className="w-full h-full" />
+                            <Icons.Logo className="w-full h-full" />
                         </div>
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Encontre um Amigo</span>
+                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">EncontreUmAmigo</span>
                     </div>
                     
                     <div className="hidden md:flex items-center space-x-6">
@@ -299,23 +255,11 @@ function App() {
                     </div>
                     <div className="md:hidden"><button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2"><Icons.Menu className="w-6 h-6" /></button></div>
                 </div>
-                
-                {mobileMenuOpen && (
-                    <div className="md:hidden bg-white border-t animate-fade-in shadow-lg absolute w-full left-0 top-16 z-50">
-                        <div className="p-2 space-y-1">
-                            <button onClick={() => { setView('home'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Início</button>
-                            <button onClick={() => { setView('donate'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Doações</button>
-                            <button onClick={() => { setView('volunteer'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Seja Voluntário</button>
-                            <button onClick={() => { setView('contact'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Fale Conosco</button>
-                            <button onClick={() => { setView('admin'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Gerenciar</button>
-                            <button onClick={() => { setShowAdvisor(true); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-indigo-600 flex items-center gap-2"><Icons.Sparkles className="w-4 h-4" /> Conselheiro IA</button>
-                        </div>
-                    </div>
-                )}
+                {mobileMenuOpen && (<div className="md:hidden bg-white border-t animate-fade-in shadow-lg absolute w-full left-0 top-16 z-50"><div className="p-2 space-y-1"><button onClick={() => { setView('home'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Início</button><button onClick={() => { setView('donate'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Doações</button><button onClick={() => { setView('volunteer'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Seja Voluntário</button><button onClick={() => { setView('contact'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Fale Conosco</button><button onClick={() => { setView('admin'); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-gray-700">Gerenciar</button><button onClick={() => { setShowAdvisor(true); setMobileMenuOpen(false); }} className="block w-full text-left p-3 hover:bg-gray-50 rounded-lg font-medium text-indigo-600 flex items-center gap-2"><Icons.Sparkles className="w-4 h-4" /> Conselheiro IA</button></div></div>)}
             </nav>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
-                {/* --- HOME VIEW --- */}
+                {/* VIEW HOME */}
                 {view === 'home' && (
                     <>
                         <div className="relative rounded-3xl overflow-hidden bg-indigo-600 text-white mb-10 shadow-xl min-h-[300px] flex items-center">
@@ -340,7 +284,7 @@ function App() {
                     </>
                 )}
 
-                {/* --- DONATE, VOLUNTEER, CONTACT (MESMOS) --- */}
+                {/* VIEW DONATE */}
                 {view === 'donate' && (
                     <div className="animate-fade-in">
                         <div className="text-center mb-10"><h2 className="text-3xl font-bold text-gray-800 mb-2">Ajude a Manter o Projeto ❤️</h2><p className="text-gray-600">Sua ajuda salva vidas.</p></div>
@@ -354,6 +298,7 @@ function App() {
                     </div>
                 )}
 
+                {/* VIEW VOLUNTEER */}
                 {view === 'volunteer' && (
                     <div className="animate-fade-in max-w-4xl mx-auto">
                         <div className="text-center mb-10"><h2 className="text-3xl font-bold text-gray-800 mb-2">Faça Parte do Time 🤝</h2><p className="text-gray-600">Doe seu tempo e carinho.</p></div>
@@ -371,6 +316,7 @@ function App() {
                     </div>
                 )}
 
+                {/* VIEW CONTACT */}
                 {view === 'contact' && (
                     <div className="animate-fade-in max-w-4xl mx-auto">
                         <div className="text-center mb-10"><h2 className="text-3xl font-bold text-gray-800 mb-2">Fale Conosco</h2><p className="text-gray-600">Dúvidas, sugestões ou parcerias?</p></div>
@@ -388,11 +334,39 @@ function App() {
                     </div>
                 )}
 
-                {/* --- ADMIN VIEW (ATUALIZADO PARA MOBILE E SEM RELOAD) --- */}
+                {/* --- ADMIN VIEW --- */}
                 {view === 'admin' && (
                     <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
                         {!isAdmin ? (
-                            <div className="p-12 text-center max-w-md mx-auto"><h2 className="text-2xl font-bold mb-4">Admin Login</h2><form onSubmit={handleAdminLogin} className="space-y-4"><input placeholder="Usuário" className="w-full border p-3 rounded" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} /><input type="password" placeholder="Senha" className="w-full border p-3 rounded" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} /><button className="w-full bg-indigo-600 text-white p-3 rounded font-bold">Entrar</button></form></div>
+                            <div className="p-12 text-center max-w-md mx-auto">
+                                <div className="mb-6 bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto border border-indigo-100 shadow-sm">
+                                    {/* LOGO NO LOGIN */}
+                                    <div className="w-14 h-14 text-indigo-600">
+                                        <Icons.Logo className="w-full h-full" />
+                                    </div>
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-1">Área Restrita</h2>
+                                <p className="text-sm text-red-500 font-medium bg-red-50 px-4 py-1 rounded-full inline-block mb-6">Apenas funcionários autorizados</p>
+                                {!showForgotPassword ? (
+                                    <>
+                                        <form onSubmit={handleAdminLogin} className="space-y-4 mt-8">
+                                            <input placeholder="Usuário" className="w-full border p-3 rounded" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} />
+                                            <input type="password" placeholder="Senha" className="w-full border p-3 rounded" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} />
+                                            <button className="w-full bg-indigo-600 text-white p-3 rounded font-bold">Entrar</button>
+                                        </form>
+                                        <button onClick={() => setShowForgotPassword(true)} className="text-xs text-gray-500 mt-4 hover:underline">Esqueci minha senha</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <form onSubmit={handleForgotPassword} className="space-y-4 mt-8">
+                                            <p className="text-sm text-gray-600">Digite seu email de cadastro:</p>
+                                            <input type="email" placeholder="Email" className="w-full border p-3 rounded" value={resetEmail} onChange={e => setResetEmail(e.target.value)} />
+                                            <button className="w-full bg-orange-500 text-white p-3 rounded font-bold">Recuperar Senha</button>
+                                        </form>
+                                        <button onClick={() => setShowForgotPassword(false)} className="text-xs text-gray-500 mt-4 hover:underline">Voltar ao Login</button>
+                                    </>
+                                )}
+                            </div>
                         ) : (
                             <>
                                 <div className="p-6 border-b bg-gray-50 flex justify-between items-center flex-wrap gap-4">
@@ -402,6 +376,7 @@ function App() {
                                         <button onClick={() => setAdminTab('adoptions')} className={`px-3 py-2 rounded-lg text-sm font-bold ${adminTab === 'adoptions' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600'}`}>Solicitações</button>
                                         <button onClick={() => setAdminTab('messages')} className={`px-3 py-2 rounded-lg text-sm font-bold ${adminTab === 'messages' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600'}`}>Mensagens</button>
                                         <button onClick={() => setAdminTab('volunteers')} className={`px-3 py-2 rounded-lg text-sm font-bold ${adminTab === 'volunteers' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600'}`}>Voluntários</button>
+                                        <button onClick={() => setAdminTab('users')} className={`px-3 py-2 rounded-lg text-sm font-bold ${adminTab === 'users' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600'}`}>Usuários</button>
                                     </div>
                                     <button onClick={handleLogout} className="text-red-500 text-sm underline">Sair</button>
                                 </div>
@@ -416,11 +391,12 @@ function App() {
                                     <table className="w-full text-left min-w-[600px]">
                                         <thead className="bg-white border-b text-sm text-gray-500 uppercase">
                                             <tr>
-                                                {adminTab === 'pets' && <><th className="p-4 pl-6">Pet</th><th className="p-4">Doador</th><th className="p-4">Local</th></>}
+                                                {adminTab === 'pets' && <><th className="p-4 pl-6">Foto/Nome</th><th className="p-4">Detalhes</th><th className="p-4">Doador</th><th className="p-4">Local</th></>}
                                                 {adminTab === 'donations' && <><th className="p-4 pl-6">Data/Doador</th><th className="p-4">Itens</th></>}
-                                                {adminTab === 'adoptions' && <><th className="p-4 pl-6">Pet</th><th className="p-4">Interessado</th><th className="p-4">Status</th></>}
-                                                {adminTab === 'messages' && <><th className="p-4 pl-6">Data/Nome</th><th className="p-4">Assunto</th></>}
-                                                {adminTab === 'volunteers' && <><th className="p-4 pl-6">Data/Nome</th><th className="p-4">Ajuda</th></>}
+                                                {adminTab === 'adoptions' && <><th className="p-4 pl-6">Data/Pet</th><th className="p-4">Interessado</th><th className="p-4">Status</th></>}
+                                                {adminTab === 'messages' && <><th className="p-4 pl-6">Data/Nome</th><th className="p-4">Assunto/Mensagem</th></>}
+                                                {adminTab === 'volunteers' && <><th className="p-4 pl-6">Data/Nome</th><th className="p-4">Disponibilidade</th><th className="p-4">Interesse</th></>}
+                                                {adminTab === 'users' && <><th className="p-4 pl-6">Data/ID</th><th className="p-4">Usuário</th><th className="p-4">Email</th></>}
                                                 <th className="p-4 text-right">Ação</th>
                                             </tr>
                                         </thead>
@@ -428,6 +404,7 @@ function App() {
                                             {adminTab === 'pets' && pets.map(p => (
                                                 <tr key={p.id} className="hover:bg-gray-50">
                                                     <td className="p-4 pl-6 flex items-center gap-3"><img src={p.image} className={`w-12 h-12 rounded-lg object-cover ${p.isAdopted?'grayscale':''}`}/><div><p className="font-bold">{p.name}</p><span className="text-xs text-gray-500">{p.breed}</span></div></td>
+                                                    <td className="p-4"><div className="text-sm">{p.age} • {p.gender}</div></td>
                                                     <td className="p-4"><div className="text-sm font-medium">{p.owner}</div>{p.contact && <a href={`https://wa.me/55${p.contact.replace(/\D/g,'')}`} target="_blank" className="text-xs text-green-600 flex gap-1"><Icons.Phone className="w-3 h-3"/> {p.contact}</a>}</td>
                                                     <td className="p-4 text-sm">{p.location}</td>
                                                     <td className="p-4 text-right flex justify-end gap-2">
@@ -437,10 +414,69 @@ function App() {
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {adminTab === 'donations' && donations.map(d => <tr key={d.id} className="hover:bg-gray-50"><td className="p-4 pl-6"><div className="text-xs text-gray-400">{d.date}</div><div className="font-bold">{d.name}</div><div className="text-sm text-green-600">{d.contact}</div></td><td className="p-4 text-sm italic">"{d.items}"</td><td className="p-4 text-right"><button onClick={() => handleDeleteDonation(d.id)} className="text-green-600 p-2"><Icons.CheckCircle className="w-5 h-5" /></button></td></tr>)}
-                                            {adminTab === 'adoptions' && adoptions.map(a => <tr key={a.id} className="hover:bg-gray-50"><td className="p-4 pl-6"><div className="text-xs text-gray-400">{a.date}</div><span className="font-bold text-indigo-600">{a.petName}</span></td><td className="p-4"><div className="font-medium">{a.adopterName}</div><a href={`https://wa.me/55${a.adopterContact.replace(/\D/g,'')}`} target="_blank" className="text-xs text-green-600 hover:underline flex gap-1"><Icons.Phone className="w-3 h-3"/> {a.adopterContact}</a></td><td className="p-4"><select value={a.status} onChange={(e) => handleUpdateStatus(a.id, e.target.value)} className="text-xs font-bold px-2 py-1 rounded border outline-none"><option value="Analisando">Analisando ⏳</option><option value="Aprovado">Aprovado ✅</option><option value="Reprovado">Reprovado ❌</option></select></td><td className="p-4 text-right"><button onClick={() => handleDeleteAdoption(a.id)} className="text-gray-400 hover:text-red-500 p-2"><Icons.Trash className="w-5 h-5" /></button></td></tr>)}
-                                            {adminTab === 'messages' && messages.map(m => <tr key={m.id} className="hover:bg-gray-50"><td className="p-4 pl-6"><div className="text-xs text-gray-400">{m.date}</div><div className="font-bold">{m.name}</div><div className="text-xs text-indigo-600">{m.email}</div></td><td className="p-4"><div className="font-bold text-sm">{m.subject}</div><div className="text-sm text-gray-600">{m.message}</div></td><td className="p-4 text-right"><button onClick={() => handleDeleteMessage(m.id)} className="text-red-500 p-2"><Icons.Trash className="w-5 h-5" /></button></td></tr>)}
-                                            {adminTab === 'volunteers' && volunteers.map(v => <tr key={v.id} className="hover:bg-gray-50"><td className="p-4 pl-6"><div className="text-xs text-gray-400">{v.date}</div><div className="font-bold">{v.name}</div><div className="text-sm text-green-600">{v.contact}</div></td><td className="p-4 text-sm">{v.availability}</td><td className="p-4 text-right"><button onClick={() => handleDeleteVolunteer(v.id)} className="text-red-500 p-2"><Icons.Trash className="w-5 h-5" /></button></td></tr>)}
+                                            {/* TABELA DE DOAÇÕES */}
+                                            {adminTab === 'donations' && donations.map(d => (
+                                                <tr key={d.id} className="hover:bg-gray-50">
+                                                    <td className="p-4 pl-6"><div className="text-xs text-gray-400">{d.date}</div><div className="font-bold">{d.name}</div><div className="text-sm text-green-600">{d.contact}</div></td>
+                                                    <td className="p-4 text-sm italic">"{d.items}"</td>
+                                                    <td className="p-4 text-right"><button onClick={() => handleDeleteDonation(d.id)} className="text-green-600 p-2"><Icons.CheckCircle className="w-5 h-5" /></button></td>
+                                                </tr>
+                                            ))}
+                                            {/* TABELA DE SOLICITAÇÕES */}
+                                            {adminTab === 'adoptions' && adoptions.map(a => (
+                                                <tr key={a.id} className="hover:bg-gray-50">
+                                                    <td className="p-4 pl-6"><div className="text-xs text-gray-400">{a.date}</div><span className="font-bold text-indigo-600">{a.petName}</span></td>
+                                                    <td className="p-4"><div className="font-medium">{a.adopterName}</div><a href={`https://wa.me/55${a.adopterContact.replace(/\D/g,'')}`} target="_blank" className="text-xs text-green-600 hover:underline flex gap-1"><Icons.Phone className="w-3 h-3"/> {a.adopterContact}</a></td>
+                                                    <td className="p-4"><select value={a.status} onChange={(e) => handleUpdateStatus(a.id, e.target.value)} className="text-xs font-bold px-2 py-1 rounded border outline-none"><option value="Analisando">Analisando ⏳</option><option value="Aprovado">Aprovado ✅</option><option value="Reprovado">Reprovado ❌</option></select></td>
+                                                    <td className="p-4 text-right"><button onClick={() => handleDeleteAdoption(a.id)} className="text-gray-400 hover:text-red-500 p-2"><Icons.Trash className="w-5 h-5" /></button></td>
+                                                </tr>
+                                            ))}
+                                            {/* TABELA DE MENSAGENS */}
+                                            {adminTab === 'messages' && messages.map(m => (
+                                                <tr key={m.id} className="hover:bg-gray-50">
+                                                    <td className="p-4 pl-6"><div className="text-xs text-gray-400">{m.date}</div><div className="font-bold">{m.name}</div><div className="text-xs text-indigo-600">{m.email}</div></td>
+                                                    <td className="p-4"><div className="font-bold text-sm">{m.subject}</div><div className="text-sm text-gray-600">{m.message}</div></td>
+                                                    <td className="p-4 text-right"><button onClick={() => handleDeleteMessage(m.id)} className="text-red-500 p-2"><Icons.Trash className="w-5 h-5" /></button></td>
+                                                </tr>
+                                            ))}
+                                            {/* TABELA DE VOLUNTÁRIOS */}
+                                            {adminTab === 'volunteers' && volunteers.map(v => (
+                                                <tr key={v.id} className="hover:bg-gray-50">
+                                                    <td className="p-4 pl-6"><div className="text-xs text-gray-400">{v.date}</div><div className="font-bold">{v.name}</div><div className="text-sm text-green-600">{v.contact}</div></td>
+                                                    <td className="p-4 text-sm">{v.availability}</td><td className="p-4 text-sm text-gray-600 italic">"{v.interests}"</td><td className="p-4 text-right"><button onClick={() => handleDeleteVolunteer(v.id)} className="text-red-500 p-2"><Icons.Trash className="w-5 h-5" /></button></td>
+                                                </tr>
+                                            ))}
+                                            {/* TABELA DE USUÁRIOS */}
+                                            {adminTab === 'users' && users.map(u => {
+                                                const isMe = u.username === Parse.User.current()?.get("username");
+                                                return (
+                                                    <tr key={u.id} className="hover:bg-gray-50">
+                                                        <td className="p-4 pl-6 text-xs text-gray-400">{u.date}<br/>{u.id}</td>
+                                                        <td className="p-4 font-bold text-gray-800">
+                                                            {u.username}
+                                                            {isMe && <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Você</span>}
+                                                        </td>
+                                                        <td className="p-4 text-sm text-gray-600">{u.email}</td>
+                                                        <td className="p-4 text-right flex justify-end gap-2">
+                                                            {isMe ? (
+                                                                <>
+                                                                    <button onClick={async () => {
+                                                                        const newName = prompt("Novo Usuário:", u.username); if (!newName) return;
+                                                                        const newEmail = prompt("Novo Email:", u.email); if (!newEmail) return;
+                                                                        try { const user = Parse.User.current(); user.set("username", newName); user.set("email", newEmail); await user.save(); alert("Atualizado!"); window.location.reload(); } catch (e) { alert("Erro: " + e.message); }
+                                                                    }} className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-full transition-colors"><Icons.Edit className="w-5 h-5" /></button>
+                                                                    <button onClick={async () => {
+                                                                        const newPass = prompt("Nova Senha:"); if (!newPass) return;
+                                                                        try { const user = Parse.User.current(); user.set("password", newPass); await user.save(); alert("Senha alterada!"); } catch (e) { alert("Erro: " + e.message); }
+                                                                    }} className="text-orange-500 hover:bg-orange-50 p-2 rounded-full transition-colors"><Icons.Lock className="w-5 h-5" /></button>
+                                                                </>
+                                                            ) : (
+                                                                <button onClick={() => handleDeleteUser(u.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"><Icons.Trash className="w-5 h-5" /></button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -449,7 +485,6 @@ function App() {
                     </div>
                 )}
 
-                {/* MODIFICADO: Passa 'editingPet' para o formulário */}
                 {view === 'register' && <RegisterForm onCancel={() => setView(isAdmin ? 'admin' : 'home')} onSubmit={handleRegisterPet} initialData={editingPet} />}
             </main>
             {selectedPet && <Modal pet={selectedPet} onClose={() => setSelectedPet(null)} onAdopt={handleAdoptionRequest} />}
