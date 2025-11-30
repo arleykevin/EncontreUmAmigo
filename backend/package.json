@@ -1,0 +1,15 @@
+{
+  "name": "encontre-um-amigo-cloud-code",
+  "version": "1.0.0",
+  "description": "Dependências para funções Cloud Code no Back4App",
+  "main": "main.js",
+  "dependencies": {
+    "moment": "^2.29.4",
+    "lodash": "^4.17.21"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Arley Kevin",
+  "license": "ISC"
+}
