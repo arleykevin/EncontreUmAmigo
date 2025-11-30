@@ -22,9 +22,7 @@
 <img width="841" height="514" alt="Captura de tela 2025-11-29 222417" src="https://github.com/user-attachments/assets/8a0866ab-0ba1-47f4-b014-eb436ffb671f" />
 <img width="851" height="484" alt="Captura de tela 2025-11-29 222412" src="https://github.com/user-attachments/assets/0c94c896-ea76-408b-9723-f4fd18389946" />
 <img width="266" height="352" alt="Captura de tela 2025-11-29 222404" src="https://github.com/user-attachments/assets/6b54e850-7dbf-4ac2-89f5-3bcb0b60a795" />
-**
-![Uploadin<img width="990" height="587" alt="Captura de tela 2025-11-29 222248" src="https://github.com/user-attachments/assets/dc16ecae-2386-4c1d-841e-e2f46717f747" />
-g Captura de tela 2025-11-29 222457.png…]()
+<img width="990" height="587" alt="Captura de tela 2025-11-29 222248" src="https://github.com/user-attachments/assets/dc16ecae-2386-4c1d-841e-e2f46717f747" />
 
 
 
