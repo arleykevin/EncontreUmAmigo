@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <style>
-    .paw { fill: #4F46E5; } /* Cor Indigo do seu site */
-  </style>
-  <circle cx="50" cy="65" r="25" class="paw"/>
-  <circle cx="20" cy="30" r="12" class="paw"/>
-  <circle cx="45" cy="20" r="12" class="paw"/>
-  <circle cx="75" cy="25" r="12" class="paw"/>
-</svg>
