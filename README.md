@@ -192,7 +192,7 @@ O sistema utiliza uma arquitetura **Cliente-Servidor (Serverless)**:
 * **URL de Acesso (Web):** https://encontre-um-amigo.vercel.app/
 * **Credenciais de Teste (Admin):**
     * **Usuário:** `admin`
-    * **Senha:** `1234` (ou a senha que definimos no banco)
+    * **Senha:** `1234`
 
 ---
 
@@ -224,4 +224,5 @@ O sistema foi validado através de testes de usabilidade em dispositivos móveis
 | [Francisca Josiana dos Santos Oliveira] | [Criação de protótipos de interface web e mobile]   | [noinicio@hotmail.com] |
 | [Gabriella Castro de Moura Moreira] | [Definição de requisitos]   | [gabriellacmmoreira@edu.unifor.br] |
 | [Paulo Vitor Temoteo Araújo] | [Modelagem de banco de dados]   | [vitutemoteo@hotmail.com] |
+
 
