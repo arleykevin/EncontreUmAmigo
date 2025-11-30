@@ -1,0 +1,10 @@
+{
+  "name": "encontre-um-amigo-mobile-docs",
+  "version": "1.0.0",
+  "description": "Estrutura nativa gerada pelo Capacitor",
+  "private": true,
+  "scripts": {
+    "info": "echo 'O código mobile é gerado a partir do frontend/web usando o Capacitor.'"
+  },
+  "author": "Arley Kevin"
+}
