@@ -83,7 +83,139 @@ O desenvolvimento da Etapa 2 (N708) será dividido em Sprints quinzenais, totali
     * Preparação da apresentação final do projeto.
     * (Opcional) Considerar o deploy da aplicação em um serviço gratuito.
 
-## 👥 Equipe
+---
+
+
+# EncontreUmAmigo 🐾 Etapa 2 (N708)
+
+## 1. Título e Descrição do Projeto
+**Nome do Sistema:** EncontreUmAmigo
+
+**Descrição:**
+O **EncontreUmAmigo** é uma plataforma *Fullstack* (Web e Mobile) desenvolvida para facilitar a adoção de animais de estimação. O sistema atua como uma ponte tecnológica entre protetores/ONGs que possuem animais para doação e pessoas interessadas em adotar um novo companheiro.
+
+**Problema Solucionado:**
+Muitos animais abandonados não encontram lares devido à falta de visibilidade e à descentralização das informações. Protetores independentes muitas vezes dependem de redes sociais dispersas. O sistema centraliza esses dados, oferece ferramentas de gestão para os doadores e utiliza Inteligência Artificial para auxiliar na compatibilidade entre pet e adotante.
+
+---
+
+## 2. Funcionalidades Implementadas
+
+### Status de Implementação: ✅ Completo (MVP)
+
+* **Vitrine de Adoção:** Listagem de animais com filtros por espécie (Cão/Gato) e busca por nome/localização.
+* **Detalhes do Pet:** Modal com fotos, descrição completa, status de saúde (vacinado/castrado) e contato direto (WhatsApp/Email).
+* **Conselheiro Virtual (IA):** Chatbot integrado com Google Gemini para tirar dúvidas e recomendar pets baseados no perfil do usuário.
+* **Painel Administrativo (Área Restrita):**
+    * Login seguro com autenticação.
+    * Cadastro e Edição de Pets com upload de fotos.
+    * Gestão de status (Disponível/Adotado).
+    * Visualização de Solicitações de Adoção (CRM simples com status: Analisando/Aprovado).
+    * Gestão de Doações de itens e Voluntários.
+* **Solicitação de Adoção:** Formulário para interessados enviarem seus dados ao protetor.
+* **Área de Doações:** Informações para PIX e Pontos de Coleta, além de formulário de intenção de doação de itens.
+* **App Mobile:** Versão Android nativa gerada via Capacitor.
+
+### Screenshots
+*(Adicione aqui as imagens da pasta `validation/evidence`)*
+* ![Tela Inicial Mobile](validation/evidence/Mobile_Home.png)
+* ![Painel Administrativo](validation/evidence/Admin_Panel.png)
+* ![Chat com IA](validation/evidence/AI_Chat.png)
+
+---
+
+## 3. Tecnologias Utilizadas
+
+* **Frontend:** React.js, Vite.
+* **Estilização:** Tailwind CSS (Design responsivo e moderno).
+* **Backend (BaaS):** Back4App (Baseado em Parse Server) para banco de dados e autenticação.
+* **Mobile:** Capacitor (Conversão de Web para Android Nativo).
+* **Inteligência Artificial:** Google Gemini API (Modelo gemini-pro/gemini-1.5-flash).
+* **Controle de Versão:** Git & GitHub.
+* **Ícones:** Lucide React (via componente personalizado SVG).
+
+---
+
+## 4. Arquitetura do Sistema
+
+O sistema utiliza uma arquitetura **Cliente-Servidor (Serverless)**:
+
+1.  **Frontend (Cliente):** Aplicação SPA (Single Page Application) em React que consome as APIs. Responsável por toda a interface e lógica de apresentação.
+2.  **Backend (Serviço):** O Back4App atua como backend, gerenciando o banco de dados NoSQL (Classes: `Pet`, `Donation`, `AdoptionRequest`, `User`, `Volunteer`, `ContactMessage`) e a autenticação de usuários.
+3.  **Integração:** A comunicação é feita através do **Parse SDK** para JavaScript.
+4.  **Módulo IA:** Serviço isolado que conecta diretamente à API do Google Gemini para processamento de linguagem natural.
+
+---
+
+## 5. Instruções de Instalação e Execução
+
+### Pré-requisitos
+* Node.js (v16 ou superior)
+* Conta no Back4App (para chaves de API)
+* Chave de API do Google AI Studio
+* Android Studio (apenas para build mobile)
+
+### Passo a Passo
+
+1.  **Clonar o repositório:**
+    ```bash
+    git clone [https://github.com/seu-usuario/EncontreUmAmigo-React.git](https://github.com/seu-usuario/EncontreUmAmigo-React.git)
+    cd EncontreUmAmigo-React
+    ```
+
+2.  **Instalar dependências:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configurar Chaves:**
+    * Abra `src/services/back4app.js` e insira suas `Application ID` e `Javascript Key`.
+    * Abra `src/services/gemini.js` e insira sua `API Key` do Google.
+
+4.  **Executar em modo de desenvolvimento:**
+    ```bash
+    npm run dev
+    ```
+    O sistema estará acessível em `http://localhost:5173`.
+
+5.  **Gerar versão Mobile (Android):**
+    ```bash
+    npm run build
+    npx cap sync
+    npx cap open android
+    ```
+
+---
+
+## 6. Acesso ao Sistema
+
+* **URL de Acesso (Web):** https://encontre-um-amigo.vercel.app/
+* **Credenciais de Teste (Admin):**
+    * **Usuário:** `admin`
+    * **Senha:** `1234` (ou a senha que definimos no banco)
+
+---
+
+## 7. Validação com Público-Alvo
+
+### Definição do Público-Alvo
+* **Adotantes:** Pessoas de 18-60 anos buscando animais de estimação, familiarizadas com uso de smartphones.
+* **Protetores:** Gestores de abrigos ou voluntários que necessitam de uma ferramenta para organizar as adoções.
+
+### Resumo da Validação
+O sistema foi validado através de testes de usabilidade em dispositivos móveis e desktop.
+
+### Feedbacks e Ajustes
+* **Feedback:** "O formulário de cadastro estava quebrado no modo escuro do celular."
+    * **Ajuste:** Refatoração do CSS para forçar fundo branco e ajuste de paddings no mobile.
+* **Feedback:** "Falta de feedback visual se o animal já foi adotado."
+    * **Ajuste:** Implementação de etiqueta visual "ADOTADO" e filtro de ordenação.
+* **Feedback:** "Dificuldade em saber se a doação foi recebida."
+    * **Ajuste:** Criação da aba "Doações" no painel administrativo para baixa e controle.
+
+---
+
+## 8. Equipe de Desenvolvimento
 
 | Nome Completo | Papel no Projeto | Contato (GitHub/Email) |
 | :------------ | :--------------- | :--------------------- |
@@ -92,8 +224,4 @@ O desenvolvimento da Etapa 2 (N708) será dividido em Sprints quinzenais, totali
 | [Francisca Josiana dos Santos Oliveira] | [Criação de protótipos de interface web e mobile]   | [noinicio@hotmail.com] |
 | [Gabriella Castro de Moura Moreira] | [Definição de requisitos]   | [gabriellacmmoreira@edu.unifor.br] |
 | [Paulo Vitor Temoteo Araújo] | [Modelagem de banco de dados]   | [vitutemoteo@hotmail.com] |
-| ...           | ...              | ...                    |
-
----
-
 
